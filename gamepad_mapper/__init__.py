@@ -1,1 +1,1 @@
-from .gamepad import main
+from .gamepad import main, load_or_map

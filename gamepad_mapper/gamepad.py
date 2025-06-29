@@ -48,7 +48,7 @@ def wait_for_button_press(joystick: pygame.joystick.Joystick, already_taken: set
                     return btn
 
 
-def map(joystick: pygame.joystick.Joystick, axes_names, button_names) -> Dict:
+def map(joystick: pygame.joystick.Joystick, axes_names, button_names, verbose=False) -> Dict:
     axis_mapping: List[Dict] = []
     used_axes: set[int] = set()
     baseline = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
@@ -77,13 +77,13 @@ def map(joystick: pygame.joystick.Joystick, axes_names, button_names) -> Dict:
         "buttons": buttons
     }
     print("\nMapping completed!\n", file=sys.stderr)
-    print(json.dumps(mapping, indent=2))
+    print(json.dumps(mapping, indent=2)) if verbose else None
     return mapping
 
 
 
 
-def load_or_map(joystick, axes_names, button_names, force=False, name="default") -> Dict:
+def load_or_map(joystick, axes_names, button_names, force=False, name="default", verbose=False) -> Dict:
     mapping_file = CFG_DIR / f"{name}.json"
     if not force and mapping_file.exists():
         try:
@@ -94,7 +94,7 @@ def load_or_map(joystick, axes_names, button_names, force=False, name="default")
         except Exception as exc:
             print(f"Failed to read mapping: {exc!s}. Re-mapping…")
 
-    mapping = map(joystick, axes_names, button_names)
+    mapping = map(joystick, axes_names, button_names, verbose=verbose)
     with mapping_file.open("w") as fp:
         json.dump(mapping, fp, indent=2)
     print(f"Mapping saved to {mapping_file}")

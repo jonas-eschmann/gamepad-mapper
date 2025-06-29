@@ -10,6 +10,12 @@
                 "--name", "debug",
                 "--map"
             ]
+        },
+        {
+            "name": "example",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "examples/example.py"
         }
     ]
 }
