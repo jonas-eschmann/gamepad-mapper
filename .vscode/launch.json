@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "calibration",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "calibration.gamepad",
+            "args": [
+                "--name", "debug",
+                "--calibrate"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "calibration"
+version = "0.0.1"
+description = "Calibrate a gamepad and map axes and buttons"
+readme = "README.md"
+authors = [{name = "Jonas Eschmann", email = "jonas.eschmann@gmail.com"}]
+license = {text = "MIT"}
+dependencies = [
+    "pygame",
+    "platformdirs"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["calibration"]
+
+[project.scripts]
+calibration = "calibration:main"
