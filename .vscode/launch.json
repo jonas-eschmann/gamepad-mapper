@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "calibration",
+            "name": "mapper",
             "type": "debugpy",
             "request": "launch",
-            "module": "calibration.gamepad",
+            "module": "gamepad_mapper.gamepad",
             "args": [
                 "--name", "debug",
-                "--calibrate"
+                "--map"
             ]
         }
     ]

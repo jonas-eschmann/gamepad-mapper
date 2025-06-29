@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "calibration"
+name = "gamepad-mapper"
 version = "0.0.1"
-description = "Calibrate a gamepad and map axes and buttons"
+description = "Map gamepad axes and buttons"
 readme = "README.md"
 authors = [{name = "Jonas Eschmann", email = "jonas.eschmann@gmail.com"}]
 license = {text = "MIT"}
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["calibration"]
+packages = ["gamepad_mapper"]
 
 [project.scripts]
-calibration = "calibration:main"
+gamepad-mapper = "gamepad_mapper:main"

@@ -1,7 +1,7 @@
-# Gamepad Calibration
+# Gamepad Mapping
 ```python
 import sys, pygame
-from calibration import load_or_calibrate
+from gamepad_mapper import load_or_map
 
 pygame.init()
 pygame.joystick.init()
@@ -12,5 +12,5 @@ if pygame.joystick.get_count() == 0:
 joystick = pygame.joystick.Joystick(0)
 joystick.init()
 
-mapping = load_or_calibrate(joystick, ["Roll", "Pitch", "Throttle", "Yaw"], ["arm"], force_calibration=True, name="example")
+mapping = load_or_map(joystick, ["Roll", "Pitch", "Throttle", "Yaw"], ["arm"], force=True, name="example")
 ```

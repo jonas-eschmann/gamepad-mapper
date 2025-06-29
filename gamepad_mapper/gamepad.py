@@ -8,7 +8,7 @@ import pygame
 from platformdirs import user_config_dir
 import asyncio
 
-CFG_DIR = Path(user_config_dir("calibration"))
+CFG_DIR = Path(user_config_dir("gamepad-mapper"))
 CFG_DIR.mkdir(parents=True, exist_ok=True)
 
 def wait_for_axis_movement(joystick: pygame.joystick.Joystick,
@@ -48,7 +48,7 @@ def wait_for_button_press(joystick: pygame.joystick.Joystick, already_taken: set
                     return btn
 
 
-def calibrate(joystick: pygame.joystick.Joystick, axes_names, button_names) -> Dict:
+def map(joystick: pygame.joystick.Joystick, axes_names, button_names) -> Dict:
     axis_mapping: List[Dict] = []
     used_axes: set[int] = set()
     baseline = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
@@ -76,25 +76,25 @@ def calibrate(joystick: pygame.joystick.Joystick, axes_names, button_names) -> D
         "axes": axis_mapping,
         "buttons": buttons
     }
-    print("\nCalibration completed!\n", file=sys.stderr)
+    print("\nMapping completed!\n", file=sys.stderr)
     print(json.dumps(mapping, indent=2))
     return mapping
 
 
 
 
-def load_or_calibrate(joystick, axes_names, button_names, force_calibration=False, name="default") -> Dict:
+def load_or_map(joystick, axes_names, button_names, force=False, name="default") -> Dict:
     mapping_file = CFG_DIR / f"{name}.json"
-    if not force_calibration and mapping_file.exists():
+    if not force and mapping_file.exists():
         try:
             with mapping_file.open() as fp:
                 mapping = json.load(fp)
             print(f"Loaded mapping from {mapping_file}")
             return mapping
         except Exception as exc:
-            print(f"Failed to read mapping: {exc!s}. Re-calibrating…")
+            print(f"Failed to read mapping: {exc!s}. Re-mapping…")
 
-    mapping = calibrate(joystick, axes_names, button_names)
+    mapping = map(joystick, axes_names, button_names)
     with mapping_file.open("w") as fp:
         json.dump(mapping, fp, indent=2)
     print(f"Mapping saved to {mapping_file}")
@@ -131,9 +131,9 @@ async def test(joystick, mapping):
 
 
 def main():
-    p = argparse.ArgumentParser(description="Gamepad Calibration and Mapping")
-    p.add_argument("--name", type=str, default="default", help="Ignore stored mapping and run calibration")
-    p.add_argument("--calibrate", action="store_true", help="Ignore stored mapping and run calibration")
+    p = argparse.ArgumentParser(description="Gamepad Mapping")
+    p.add_argument("--name", type=str, default="default", help="Name under which to store the mapping")
+    p.add_argument("--map", action="store_true", help="Ignore stored mapping and run mapping")
     args = p.parse_args()
 
     pygame.init()
@@ -144,7 +144,7 @@ def main():
     joystick = pygame.joystick.Joystick(0)
     joystick.init()
 
-    mapping = load_or_calibrate(joystick, ["Roll", "Pitch", "Throttle", "Yaw"], ["arm"], args.calibrate, name=args.name)
+    mapping = load_or_map(joystick, ["Roll", "Pitch", "Throttle", "Yaw"], ["arm"], args.map, name=args.name)
 
     print("Press Ctrl+C to stop the test.")
     try:
