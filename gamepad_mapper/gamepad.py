@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import time
 import json
 import sys
 from pathlib import Path
@@ -10,6 +11,37 @@ import asyncio
 
 CFG_DIR = Path(user_config_dir("gamepad-mapper"))
 CFG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def read_axes(joystick: pygame.joystick.Joystick) -> List[float]:
+    pygame.event.pump()
+    return [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+
+
+def settle_axes(joystick: pygame.joystick.Joystick,
+                stable_samples: int = 3,
+                delay_s: float = 0.02,
+                tolerance: float = 0.01,
+                timeout_s: float = 0.5) -> List[float]:
+    axes = read_axes(joystick)
+    stable_count = 0
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        time.sleep(delay_s)
+        next_axes = read_axes(joystick)
+        max_delta = max(
+            (abs(next_value - value) for value, next_value in zip(axes, next_axes)),
+            default=0.0,
+        )
+        if max_delta <= tolerance:
+            stable_count += 1
+            if stable_count >= stable_samples:
+                return next_axes
+        else:
+            stable_count = 0
+        axes = next_axes
+    return axes
+
 
 def wait_for_axis_movement(joystick: pygame.joystick.Joystick,
                            baseline: List[float],
@@ -22,15 +54,14 @@ def wait_for_axis_movement(joystick: pygame.joystick.Joystick,
     sys.stderr.flush()
     axis_count = joystick.get_numaxes()
     while True:
-        pygame.event.pump()
-        # Ignore axes we've already mapped
+        axes = read_axes(joystick)
         diffs = [
-            0.0 if i in used_axes else joystick.get_axis(i) - baseline[i]
+            0.0 if i in used_axes else axes[i] - baseline[i]
             for i in range(axis_count)
         ]
         idx, delta = max(enumerate(diffs), key=lambda x: abs(x[1]))
         if abs(delta) >= thresh:
-            inverted = (joystick.get_axis(idx) < baseline[idx])
+            inverted = axes[idx] < baseline[idx]
             print(f"  Detected axis {idx} {'inverted' if inverted else 'normal'}", file=sys.stderr)
             return {"index": idx, "inverted": inverted}
 
@@ -51,14 +82,14 @@ def wait_for_button_press(joystick: pygame.joystick.Joystick, already_taken: set
 def map(joystick: pygame.joystick.Joystick, axes_names, button_names, verbose=False) -> Dict:
     axis_mapping: List[Dict] = []
     used_axes: set[int] = set()
-    baseline = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+    baseline = settle_axes(joystick)
 
     for name in axes_names:
         cfg = wait_for_axis_movement(joystick, baseline, f"\nMove the control you want to be \"{name}\" fully " "FORWARD / RIGHT (max positive) and hold…", used_axes=used_axes)
         cfg["name"] = name
         axis_mapping.append(cfg)
         used_axes.add(cfg["index"])
-        baseline = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
+        baseline = settle_axes(joystick)
 
 
     taken_buttons = set()
@@ -85,19 +116,20 @@ def map(joystick: pygame.joystick.Joystick, axes_names, button_names, verbose=Fa
 
 def load_or_map(joystick, axes_names, button_names, force=False, name="default", verbose=False) -> Dict:
     mapping_file = CFG_DIR / f"{name}.json"
+    print(f"Gamepad mapping profile path: {mapping_file}", file=sys.stderr)
     if not force and mapping_file.exists():
         try:
+            print(f"Loading gamepad mapping profile from {mapping_file}", file=sys.stderr)
             with mapping_file.open() as fp:
                 mapping = json.load(fp)
-            print(f"Loaded mapping from {mapping_file}")
             return mapping
         except Exception as exc:
-            print(f"Failed to read mapping: {exc!s}. Re-mapping…")
+            print(f"Failed to read mapping from {mapping_file}: {exc!s}. Re-mapping…", file=sys.stderr)
 
     mapping = map(joystick, axes_names, button_names, verbose=verbose)
+    print(f"Saving gamepad mapping profile to {mapping_file}", file=sys.stderr)
     with mapping_file.open("w") as fp:
         json.dump(mapping, fp, indent=2)
-    print(f"Mapping saved to {mapping_file}")
     return mapping
 
 def read_gamepad(joystick, mapping):
@@ -158,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
